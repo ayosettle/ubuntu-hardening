@@ -1,0 +1,12 @@
+# Nmap 7.992 scan initiated Fri Nov  6 15:18:11 2026 as: "C:\\Program Files (x86)\\Nmap\\nmap.exe" -p- -sV -oN evidence\\before\\nmap-before.txt 192.168.56.104
+Nmap scan report for 192.168.56.104
+Host is up (0.0016s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    nginx 1.24.0 (Ubuntu)
+MAC Address: 08:00:27:B5:75:5B (Oracle VirtualBox virtual NIC)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Fri Nov  6 15:18:30 2026 -- 1 IP address (1 host up) scanned in 19.28 seconds
