@@ -51,8 +51,41 @@ EOF
   log C10/C12 "config $state; values loaded"
 }
 
-main() {
-  c10_c12_sysctl
+# C13: disable core dumps
+c13_coredumps() {
+  local limits_state sysctl_state
+  if write_file /etc/security/limits.d/99-hardening.conf 0644 <<'EOF'
+# Managed by harden.sh - control C13 (docs/controls.md)
+* hard core 0
+EOF
+  then limits_state="written"; else limits_state="unchanged"; fi
+
+  if write_file /etc/sysctl.d/99-hardening-coredump.conf 0644 <<'EOF'
+# Managed by harden.sh - control C13 (docs/controls.md)
+fs.suid_dumpable = 0
+EOF
+  then sysctl_state="written"; else sysctl_state="unchanged"; fi
+  sysctl -q -p /etc/sysctl.d/99-hardening-coredump.conf
+  log C13 "limits $limits_state; sysctl $sysctl_state; values loaded"
 }
 
+# C14: block unused network protocol modules
+c14_protocols() {
+  local state
+  if write_file /etc/modprobe.d/99-hardening-protocols.conf 0644 <<'EOF'
+# Managed by harden.sh - control C14 (docs/controls.md)
+install dccp /bin/false
+install sctp /bin/false
+install rds /bin/false
+install tipc /bin/false
+EOF
+  then state="written"; else state="unchanged"; fi
+  log C14 "config $state"
+}
+
+main() {
+  c10_c12_sysctl
+  c13_coredumps
+  c14_protocols
+}
 main "$@"
