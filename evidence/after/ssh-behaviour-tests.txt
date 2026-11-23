@@ -1,0 +1,41 @@
+SSH behaviour tests (manual) - C06 TCP forwarding, C07 attempt limit
+Target: hardening VM through the VirtualBox NAT port forward 127.0.0.1:2223 (user settleayo)
+Date of tests: 2026-11-23
+Output below was copied from the PowerShell windows used for the tests.
+
+=== C06: TCP forwarding (tunnel to the nginx web server) ===
+Window 1: ssh -p 2223 -L 8081:127.0.0.1:80 -N settleayo@127.0.0.1
+Window 2: curl.exe -I http://127.0.0.1:8081
+
+BEFORE (hardening script not yet applied) - window 2:
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Date: Mon, 23 Nov 2026 09:54:33 GMT
+Content-Type: text/html
+Content-Length: 615
+Last-Modified: Fri, 06 Nov 2026 13:37:37 GMT
+Connection: keep-alive
+ETag: "6aedd821-267"
+Accept-Ranges: bytes
+
+AFTER (C06 applied):
+Window 1:
+settleayo@127.0.0.1's password:
+channel 2: open failed: administratively prohibited: open failed
+Window 2:
+curl: (56) Recv failure: Connection was reset
+
+=== C07: MaxAuthTries 3 ===
+Command: ssh -p 2223 -o NumberOfPasswordPrompts=5 -o PubkeyAuthentication=no settleayo@127.0.0.1
+(a wrong password was typed at every prompt)
+
+BEFORE: not measured. The baseline setting is recorded in evidence/before/sshd-T-before.txt (maxauthtries 6).
+
+AFTER (C07 applied):
+settleayo@127.0.0.1's password:
+Permission denied, please try again.
+settleayo@127.0.0.1's password:
+Permission denied, please try again.
+settleayo@127.0.0.1's password:
+Received disconnect from 127.0.0.1 port 2223:2: Too many authentication failures
+Disconnected from 127.0.0.1 port 2223
