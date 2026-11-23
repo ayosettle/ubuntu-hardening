@@ -83,9 +83,46 @@ EOF
   log C14 "config $state"
 }
 
+# C05, C06, C07, C09: SSH hardening via a drop-in file
+c05_c09_ssh() {
+  local conf=/etc/ssh/sshd_config.d/10-hardening.conf state prev had_prev=0
+  prev="$(mktemp)"
+  if [[ -f "$conf" ]]; then cp -p "$conf" "$prev"; had_prev=1; fi
+
+  if write_file "$conf" 0644 <<'EOF'
+# Managed by harden.sh - controls C05, C06, C07, C09 (docs/controls.md)
+# C05: no direct root login
+PermitRootLogin no
+# C06: turn off features this server does not use
+AllowTcpForwarding no
+X11Forwarding no
+AllowAgentForwarding no
+# C07: limit guessing and parallel sessions
+MaxAuthTries 3
+MaxSessions 2
+# C09: log which key was used to log in
+LogLevel VERBOSE
+EOF
+  then state="written"; else state="unchanged"; fi
+
+  install -d -m 0755 /run/sshd   # sshd -t needs this directory to exist
+  if ! sshd -t; then
+    echo "SSH config invalid - rolling back $conf" >&2
+    if [[ $had_prev -eq 1 ]]; then cp -p "$prev" "$conf"; else rm -f "$conf"; fi
+    rm -f "$prev"
+    return 1
+  fi
+  rm -f "$prev"
+  systemctl reload ssh
+  log C05-C09 "config $state; validated and reloaded"
+}
+
+
 main() {
   c10_c12_sysctl
   c13_coredumps
   c14_protocols
+  c05_c09_ssh
 }
+
 main "$@"
