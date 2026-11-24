@@ -137,6 +137,29 @@ EOF
   log C08 "shell timeout $state"
 }
 
+# C15: hide the nginx version
+c15_nginx_version() {
+  local conf=/etc/nginx/conf.d/10-hardening.conf state prev had_prev=0
+  prev="$(mktemp)"
+  if [[ -f "$conf" ]]; then cp -p "$conf" "$prev"; had_prev=1; fi
+
+  if write_file "$conf" 0644 <<'EOF'
+# Managed by harden.sh - control C15 (docs/controls.md)
+# Do not tell visitors which nginx version is running
+server_tokens off;
+EOF
+  then state="written"; else state="unchanged"; fi
+
+  if ! nginx -t; then
+    echo "nginx config invalid - rolling back $conf" >&2
+    if [[ $had_prev -eq 1 ]]; then cp -p "$prev" "$conf"; else rm -f "$conf"; fi
+    rm -f "$prev"
+    return 1
+  fi
+  rm -f "$prev"
+  systemctl reload nginx
+  log C15 "config $state; validated and reloaded"
+}
 
 main() {
   c10_c12_sysctl
@@ -144,6 +167,7 @@ main() {
   c14_protocols
   c05_c09_ssh
   c08_idle_shell
+  c15_nginx_version
 }
 
 main "$@"
