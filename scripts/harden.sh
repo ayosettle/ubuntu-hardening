@@ -90,7 +90,7 @@ c05_c09_ssh() {
   if [[ -f "$conf" ]]; then cp -p "$conf" "$prev"; had_prev=1; fi
 
   if write_file "$conf" 0644 <<'EOF'
-# Managed by harden.sh - controls C05, C06, C07, C09 (docs/controls.md)
+# Managed by harden.sh - controls C05, C06, C07, C08, C09 (docs/controls.md)
 # C05: no direct root login
 PermitRootLogin no
 # C06: turn off features this server does not use
@@ -100,6 +100,10 @@ AllowAgentForwarding no
 # C07: limit guessing and parallel sessions
 MaxAuthTries 3
 MaxSessions 2
+# C08: drop dead connections (idle shells are handled by TMOUT)
+ClientAliveInterval 300
+ClientAliveCountMax 2
+TCPKeepAlive no
 # C09: log which key was used to log in
 LogLevel VERBOSE
 EOF
@@ -118,11 +122,28 @@ EOF
 }
 
 
+# C08 (second half): end idle interactive shells
+c08_idle_shell() {
+  local state
+  if write_file /etc/profile.d/99-hardening-tmout.sh 0644 <<'EOF'
+# Managed by harden.sh - control C08 (docs/controls.md)
+# End idle interactive shells after 10 minutes
+if [ -z "${TMOUT:-}" ]; then
+  readonly TMOUT=600
+fi
+export TMOUT
+EOF
+  then state="written"; else state="unchanged"; fi
+  log C08 "shell timeout $state"
+}
+
+
 main() {
   c10_c12_sysctl
   c13_coredumps
   c14_protocols
   c05_c09_ssh
+  c08_idle_shell
 }
 
 main "$@"
